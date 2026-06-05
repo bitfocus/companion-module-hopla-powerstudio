@@ -1,0 +1,28 @@
+{
+	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
+	"type": "connection",
+	"id": "hopla-power-studio",
+	"name": "hopla-power-studio",
+	"shortname": "Power Studio",
+	"description": "Control Power Studio through its REST API.",
+	"version": "0.6.1",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-hopla-power-studio.git",
+	"bugs": "https://github.com/bitfocus/companion-module-hopla-power-studio/issues",
+	"maintainers": [
+		{
+			"name": "Vincent Verschuren",
+			"email": "info@power-studio.nl"
+		}
+	],
+	"runtime": {
+		"type": "node22",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "../dist/main.js"
+	},
+	"legacyIds": [],
+	"manufacturer": "HOPLA Productions",
+	"products": ["Power Studio"],
+	"keywords": ["automation", "broadcast", "playout", "radio", "rest"]
+}

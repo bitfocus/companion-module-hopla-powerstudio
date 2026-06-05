@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a problem with the Power Studio Companion module.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue. Please include enough detail to reproduce the problem.
+  - type: input
+    id: companion-version
+    attributes:
+      label: Companion version
+      description: The Bitfocus Companion version you are using.
+      placeholder: "4.x.x"
+    validations:
+      required: true
+  - type: input
+    id: module-version
+    attributes:
+      label: Module version
+      description: The Power Studio module version.
+      placeholder: "0.6.1"
+    validations:
+      required: true
+  - type: input
+    id: power-studio-version
+    attributes:
+      label: Power Studio version
+      description: The Power Studio version and build, if known.
+      placeholder: "1.24.1 build 0000"
+    validations:
+      required: false
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the issue and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the steps needed to reproduce the problem.
+      placeholder: |
+        1. Configure ...
+        2. Press ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste relevant Companion module log lines, if available.
+      render: text
+    validations:
+      required: false
