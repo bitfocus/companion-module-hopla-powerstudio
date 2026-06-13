@@ -227,10 +227,10 @@ HTTP, timeout, network and invalid JSON errors are handled separately. Authentic
 Use variables in button text with Companion syntax:
 
 ```text
-$(hopla-power-studio:variable_name)
+$(hopla-powerstudio:variable_name)
 ```
 
-If the Companion connection is renamed, replace `hopla-power-studio` with that connection label.
+If the Companion connection is renamed, replace `hopla-powerstudio` with that connection label.
 
 Connection and Power Studio version variables:
 
@@ -329,7 +329,7 @@ Recorder `position` and `duration` values are reported in seconds.
 
 ## Dynamic Cart Rack Presets
 
-The module builds cart rack trigger presets for two cart players. Each cart player always has seven rack slots, shown as `1` through `7` in Companion and mapped to API indexes `0` through `6`. Preset ids and names stay stable, for example `Trigger Cart A slot 3`, while the default button text uses variables such as `$(hopla-power-studio:cart_a_slot_3_title)` to show the current rack title from `/api/carts`. The module configuration can hide that title line, leaving compact labels such as `CART A:3`. Empty rack slots are treated as status `None`. Rack status feedback colors are applied as follows: `None` gray, `Loaded` blue, `Selected` yellow and `Playing` green. If the connection is not OK, the connection feedback overrides these colors and keeps the button dark gray.
+The module builds cart rack trigger presets for two cart players. Each cart player always has seven rack slots, shown as `1` through `7` in Companion and mapped to API indexes `0` through `6`. Preset ids and names stay stable, for example `Trigger Cart A slot 3`, while the default button text uses variables such as `$(hopla-powerstudio:cart_a_slot_3_title)` to show the current rack title from `/api/carts`. The module configuration can hide that title line, leaving compact labels such as `CART A:3`. Empty rack slots are treated as status `None`. Rack status feedback colors are applied as follows: `None` gray, `Loaded` blue, `Selected` yellow and `Playing` green. If the connection is not OK, the connection feedback overrides these colors and keeps the button dark gray.
 
 ## Player Transport Presets
 

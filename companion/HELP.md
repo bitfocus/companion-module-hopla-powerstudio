@@ -464,10 +464,10 @@ Example trigger recipes:
 You can place variables in button text. Use this Companion syntax:
 
 ```text
-$(hopla-power-studio:variable_name)
+$(hopla-powerstudio:variable_name)
 ```
 
-If you rename the Companion connection, use that connection label instead of `hopla-power-studio`.
+If you rename the Companion connection, use that connection label instead of `hopla-powerstudio`.
 
 ### Connection And API Variables
 

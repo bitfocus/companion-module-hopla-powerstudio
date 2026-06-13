@@ -1,6 +1,6 @@
 {
-	"name": "companion-module-hopla-power-studio",
-	"version": "0.6.1",
+	"name": "companion-module-hopla-powerstudio",
+	"version": "0.7.1",
 	"description": "Bitfocus Companion module for controlling Power Studio through its REST API.",
 	"main": "dist/main.js",
 	"type": "module",
@@ -20,7 +20,7 @@
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/bitfocus/companion-module-hopla-power-studio.git"
+		"url": "git+https://github.com/bitfocus/companion-module-hopla-powerstudio.git"
 	},
 	"engines": {
 		"node": "^22.20"

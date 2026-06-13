@@ -15,7 +15,7 @@ function getFeedbackDefinitions(
 	connectionOk: boolean,
 	state: PowerStudioState = {},
 	config: ModuleConfig = defaultConfig(),
-	label = 'hopla-power-studio',
+	label = 'hopla-powerstudio',
 ): FeedbackDefinitions {
 	let definitions: FeedbackDefinitions | undefined
 
@@ -149,7 +149,7 @@ test('cart rack preset text feedback follows the cart title visibility setting',
 
 	assert.deepEqual(hiddenCallback({ options: { cartPlayerIndex: 0, rackSlot: 1 } }), { text: 'CART A:1' })
 	assert.deepEqual(visibleCallback({ options: { cartPlayerIndex: 0, rackSlot: 1 } }), {
-		text: 'CART A:1\\n$(hopla-power-studio:cart_a_slot_1_title)',
+		text: 'CART A:1\\n$(hopla-powerstudio:cart_a_slot_1_title)',
 	})
 })
 
@@ -192,7 +192,7 @@ test('player transport preset text feedback follows the player title visibility 
 
 	assert.deepEqual(hiddenCallback({ options: { player: 0, transport: 'play' } }), { text: 'PLAY A' })
 	assert.deepEqual(visibleCallback({ options: { player: 0, transport: 'play' } }), {
-		text: 'PLAY A\\n$(hopla-power-studio:player_a_artist)\\n$(hopla-power-studio:player_a_title)',
+		text: 'PLAY A\\n$(hopla-powerstudio:player_a_artist)\\n$(hopla-powerstudio:player_a_title)',
 	})
 })
 
@@ -218,7 +218,7 @@ test('playlist window preset text feedback follows the playlist title visibility
 
 	assert.deepEqual(hiddenCallback({ options: { item: 1 } }), { text: 'NEXT 1' })
 	assert.deepEqual(visibleCallback({ options: { item: 1 } }), {
-		text: 'NEXT 1\\n$(hopla-power-studio:playlist_item_1_artist)\\n$(hopla-power-studio:playlist_item_1_title)',
+		text: 'NEXT 1\\n$(hopla-powerstudio:playlist_item_1_artist)\\n$(hopla-powerstudio:playlist_item_1_title)',
 	})
 })
 

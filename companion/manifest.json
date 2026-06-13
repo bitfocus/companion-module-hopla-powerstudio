@@ -1,14 +1,14 @@
 {
 	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
 	"type": "connection",
-	"id": "hopla-power-studio",
-	"name": "hopla-power-studio",
+	"id": "hopla-powerstudio",
+	"name": "hopla-powerstudio",
 	"shortname": "Power Studio",
 	"description": "Control Power Studio through its REST API.",
-	"version": "0.6.1",
+	"version": "0.7.1",
 	"license": "MIT",
-	"repository": "git+https://github.com/bitfocus/companion-module-hopla-power-studio.git",
-	"bugs": "https://github.com/bitfocus/companion-module-hopla-power-studio/issues",
+	"repository": "git+https://github.com/bitfocus/companion-module-hopla-powerstudio.git",
+	"bugs": "https://github.com/bitfocus/companion-module-hopla-powerstudio/issues",
 	"maintainers": [
 		{
 			"name": "Vincent Verschuren",

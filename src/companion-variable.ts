@@ -1,4 +1,4 @@
-export const DEFAULT_MODULE_VARIABLE_PREFIX = 'hopla-power-studio'
+export const DEFAULT_MODULE_VARIABLE_PREFIX = 'hopla-powerstudio'
 
 type ModuleVariableOwner = {
 	label?: string
