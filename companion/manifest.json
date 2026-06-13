@@ -5,7 +5,7 @@
 	"name": "hopla-powerstudio",
 	"shortname": "Power Studio",
 	"description": "Control Power Studio through its REST API.",
-	"version": "0.7.1",
+	"version": "1.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-hopla-powerstudio.git",
 	"bugs": "https://github.com/bitfocus/companion-module-hopla-powerstudio/issues",
