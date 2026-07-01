@@ -22,6 +22,21 @@ This Companion module focuses on the parts that make sense on a button surface d
 
 More information about Power Studio is available at [power-studio.nl](https://www.power-studio.nl/).
 
+## Version History
+
+### Version 1.0.1
+
+- Addressed Bitfocus review feedback.
+- Switched the module to Yarn lockfile/package-manager metadata.
+- Removed the local Companion tools patch script.
+- Improved polling so status refreshes no longer overlap.
+- Raised the poll interval defaults to reduce load while keeping button state responsive.
+- Added stricter validation and variable support for the set-next-item action.
+
+### Version 1.0.0
+
+- First release.
+
 ## Setup
 
 Add a Power Studio connection in Companion and enter the address of the Power Studio REST API.
@@ -35,7 +50,7 @@ Add a Power Studio connection in Companion and enter the address of the Power St
 - Recommended: leave the module `Username` and `Password` fields empty.
 - When Basic Auth is disabled, the REST API uses the credentials of the user currently logged into Power Studio. If no user is logged into Power Studio, authorization fails with HTTP `401`.
 - When Basic Auth is enabled, enter the module username and password. The module can then authenticate even when no user is logged into Power Studio, but Playout, Carts, Mix Editor, Recorder and Playlist Window control cannot be operated until a user is logged into Power Studio.
-- Keep the default poll interval of `100` ms unless you need faster or slower button updates. The minimum is `10` ms.
+- Keep the default poll interval of `500` ms unless you need faster or slower button updates. The minimum is `100` ms.
 - Use the three title display options when long titles make buttons hard to read. They control cart rack presets, player transport presets and playlist window presets separately.
 
 Power Studio version `1.24.1` or newer is required. If an older version is detected, the connection status shows `Power Studio version 1.24.1 or newer is required`.

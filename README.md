@@ -43,7 +43,7 @@ When an older Power Studio version is detected, the module sets the Companion co
 | Path prefix | Optional path prefix, for example `/powerstudio` when using a reverse proxy. |
 | Username | Username for Basic authentication. Only fill this when `Authenticate request using Basic Auth.` is enabled in the Power Studio REST API Plugin. Recommended: leave empty. |
 | Password | Password for Basic authentication. Stored as a Companion secret. Only fill this when Basic Auth is enabled in Power Studio. Recommended: leave empty. |
-| Poll interval | Milliseconds between status polls. Default: `100`. Minimum: `10`. |
+| Poll interval | Milliseconds between status polls. Default: `500`. Minimum: `100`. |
 | Request timeout | Milliseconds before an HTTP request is aborted. Default: `3000`. |
 | Show titles on cart rack presets | Shows the current cart slot title below `CART A:1` style labels. Default: enabled. |
 | Show titles on player transport presets | Shows live artist/title lines below `PLAY A`, `CUE A` and `PFL A` style labels. Default: enabled. |
@@ -111,38 +111,38 @@ This module targets Node.js 22, matching the Companion module runtime.
 Install dependencies:
 
 ```bash
-npm install
+yarn install
 ```
 
 Build the module:
 
 ```bash
-npm run build
+yarn build
 ```
 
 Run TypeScript in watch mode while editing:
 
 ```bash
-npm run dev
+yarn dev
 ```
 
 Run linting:
 
 ```bash
-npm run lint
+yarn lint
 ```
 
 Build a Companion package:
 
 ```bash
-npx companion-module-build
+yarn package
 ```
 
 ## Companion Development Setup
 
 Set Companion's developer modules path to the parent folder containing this module. Companion will load the built `dist/main.js` through `companion/manifest.json`.
 
-During development, keep `npm run dev` running so every save rebuilds TypeScript into `dist`.
+During development, keep `yarn dev` running so every save rebuilds TypeScript into `dist`.
 
 ## Source Structure
 

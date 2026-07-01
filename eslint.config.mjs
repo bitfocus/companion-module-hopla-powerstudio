@@ -9,6 +9,11 @@ export default [
 	...config,
 	{
 		files: ['tests/**/*.ts'],
+		languageOptions: {
+			parserOptions: {
+				project: './tsconfig.test.json',
+			},
+		},
 		rules: {
 			'@typescript-eslint/no-floating-promises': 'off',
 		},

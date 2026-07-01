@@ -29,14 +29,7 @@ export type MixEditorCommand =
 	| 'selectprofile'
 
 export type RecorderCommand =
-	| 'play'
-	| 'stop'
-	| 'record'
-	| 'record_start'
-	| 'record_stop'
-	| 'previous_profile'
-	| 'next_profile'
-	| 'select_profile'
+	'play' | 'stop' | 'record' | 'record_start' | 'record_stop' | 'previous_profile' | 'next_profile' | 'select_profile'
 
 export type PlayerState = 'playing' | 'cued' | 'pfl' | 'isNextItem'
 
@@ -53,13 +46,7 @@ export type MixEditorState =
 	| 'canPlayNext'
 
 export type RecorderState =
-	| 'playing'
-	| 'recording'
-	| 'stopped'
-	| 'canPlay'
-	| 'canStop'
-	| 'canStartRecord'
-	| 'canChangeProcessingProfile'
+	'playing' | 'recording' | 'stopped' | 'canPlay' | 'canStop' | 'canStartRecord' | 'canChangeProcessingProfile'
 
 export type VersionInfo = {
 	version?: string
