@@ -2,8 +2,8 @@ import type { SomeCompanionConfigField } from '@companion-module/base'
 import type { Protocol } from './types.js'
 
 export const DEFAULT_REST_API_PORT = 9876
-export const DEFAULT_POLL_INTERVAL = 100
-export const MIN_POLL_INTERVAL = 10
+export const DEFAULT_POLL_INTERVAL = 500
+export const MIN_POLL_INTERVAL = 100
 
 export type ModuleConfig = {
 	protocol: Protocol
@@ -95,8 +95,9 @@ export function GetConfigFields(): SomeCompanionConfigField[] {
 			default: DEFAULT_POLL_INTERVAL,
 			min: MIN_POLL_INTERVAL,
 			max: 60000,
-			step: 10,
-			tooltip: 'Milliseconds between status polls.',
+			step: 50,
+			tooltip:
+				'Milliseconds between status polls. Lower values make button feedback react faster to Power Studio state changes.',
 		},
 		{
 			type: 'number',
