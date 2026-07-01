@@ -11,6 +11,7 @@ type ActionDefinitions = CompanionActionDefinitions<ModuleSchema['actions']>
 type CueOrStopCallback = (event: { options: { player: number } }) => Promise<void>
 type PlayerCommandCallback = (event: { options: { player: number; command: PlayerCommand } }) => Promise<void>
 type RecorderCommandCallback = (event: { options: { command: RecorderCommand } }) => Promise<void>
+type SetNextItemCallback = (event: { options: { nextLineId: string } }) => Promise<void>
 
 test('player_cue_or_stop sends Stop when the player is playing', async () => {
 	const calls = await runCueOrStopAction({
@@ -83,13 +84,62 @@ test('recorder_command sends the selected Recorder command', async () => {
 			calls.push(command)
 		},
 	}
-	const definitions = getActionDefinitions({}, client as PowerStudioClient, async () => {})
+	const definitions = getActionDefinitions({}, client as unknown as PowerStudioClient, async () => {})
 	const definition = definitions.recorder_command
 
 	assert.ok(definition && typeof definition === 'object')
 	await (definition.callback as RecorderCommandCallback)({ options: { command: 'record_start' } })
 
 	assert.deepEqual(calls, ['record_start'])
+})
+
+test('set_next_item supports variables and sends a positive line id', async () => {
+	const calls: number[] = []
+	const client = {
+		setNextItem: async (nextLineId: number) => {
+			calls.push(nextLineId)
+		},
+	}
+	const definitions = getActionDefinitions({}, client as unknown as PowerStudioClient, async () => {})
+	const definition = definitions.set_next_item
+
+	assert.ok(definition && typeof definition === 'object')
+	const option = definition.options[0]
+
+	assert.ok(option)
+	assert.equal(option.type, 'textinput')
+
+	if (option.type !== 'textinput') {
+		throw new Error('Expected set_next_item to use a text input')
+	}
+
+	assert.equal(option.useVariables, true)
+
+	await (definition.callback as SetNextItemCallback)({ options: { nextLineId: '42' } })
+
+	assert.deepEqual(calls, [42])
+})
+
+test('set_next_item rejects blank, whitespace and zero line ids', async () => {
+	const client = {
+		setNextItem: async () => {},
+	}
+	const definitions = getActionDefinitions({}, client as unknown as PowerStudioClient, async () => {})
+	const definition = definitions.set_next_item
+
+	assert.ok(definition && typeof definition === 'object')
+	await assert.rejects(
+		async () => (definition.callback as SetNextItemCallback)({ options: { nextLineId: '' } }),
+		/safe integer/,
+	)
+	await assert.rejects(
+		async () => (definition.callback as SetNextItemCallback)({ options: { nextLineId: ' 5 ' } }),
+		/safe integer/,
+	)
+	await assert.rejects(
+		async () => (definition.callback as SetNextItemCallback)({ options: { nextLineId: '0' } }),
+		/positive safe integer/,
+	)
 })
 
 async function runCueOrStopAction(

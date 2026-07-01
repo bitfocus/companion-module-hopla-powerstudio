@@ -3,6 +3,7 @@ import {
 	PowerStudioHttpError,
 	PowerStudioInvalidJsonError,
 	PowerStudioNetworkError,
+	PowerStudioRequestAbortedError,
 	PowerStudioTimeoutError,
 	type PowerStudioRequestContext,
 	type PowerStudioRequestMethod,
@@ -23,6 +24,9 @@ import type {
 } from './types.js'
 
 export type PowerStudioClientLog = (message: string) => void
+export type PowerStudioRequestOptions = {
+	signal?: AbortSignal
+}
 
 const RECORDER_COMMAND_PATHS: Record<RecorderCommand, string> = {
 	play: '/api/recorder/play',
@@ -42,36 +46,36 @@ export class PowerStudioClient {
 		private readonly log: PowerStudioClientLog = () => {},
 	) {}
 
-	async getVersion(): Promise<VersionInfo> {
-		return this.getJson<VersionInfo>('/api/application/version')
+	async getVersion(options: PowerStudioRequestOptions = {}): Promise<VersionInfo> {
+		return this.getJson<VersionInfo>('/api/application/version', options)
 	}
 
-	async getTotalStatus(): Promise<TotalStatusModel> {
-		return this.getJson<TotalStatusModel>('/api/status/total')
+	async getTotalStatus(options: PowerStudioRequestOptions = {}): Promise<TotalStatusModel> {
+		return this.getJson<TotalStatusModel>('/api/status/total', options)
 	}
 
-	async getUptime(): Promise<UptimeInfo> {
-		return this.getJson<UptimeInfo>('/api/application/uptime')
+	async getUptime(options: PowerStudioRequestOptions = {}): Promise<UptimeInfo> {
+		return this.getJson<UptimeInfo>('/api/application/uptime', options)
 	}
 
-	async getPlayout(): Promise<PlayoutModel> {
-		return this.getJson<PlayoutModel>('/api/playout')
+	async getPlayout(options: PowerStudioRequestOptions = {}): Promise<PlayoutModel> {
+		return this.getJson<PlayoutModel>('/api/playout', options)
 	}
 
-	async getCarts(): Promise<CartsModel> {
-		return this.getJson<CartsModel>('/api/carts')
+	async getCarts(options: PowerStudioRequestOptions = {}): Promise<CartsModel> {
+		return this.getJson<CartsModel>('/api/carts', options)
 	}
 
-	async getMixEditor(): Promise<MixEditorModel> {
-		return this.getJson<MixEditorModel>('/api/mixeditor')
+	async getMixEditor(options: PowerStudioRequestOptions = {}): Promise<MixEditorModel> {
+		return this.getJson<MixEditorModel>('/api/mixeditor', options)
 	}
 
-	async getRecorder(): Promise<RecorderModel> {
-		return this.getJson<RecorderModel>('/api/recorder')
+	async getRecorder(options: PowerStudioRequestOptions = {}): Promise<RecorderModel> {
+		return this.getJson<RecorderModel>('/api/recorder', options)
 	}
 
-	async getCurrentPlaylist(): Promise<PlayoutProgramLogLineModel[]> {
-		return this.getJson<PlayoutProgramLogLineModel[]>('/api/playlist/current')
+	async getCurrentPlaylist(options: PowerStudioRequestOptions = {}): Promise<PlayoutProgramLogLineModel[]> {
+		return this.getJson<PlayoutProgramLogLineModel[]>('/api/playlist/current', options)
 	}
 
 	async setPlayerCommand(player: number, command: PlayerCommand): Promise<void> {
@@ -110,27 +114,37 @@ export class PowerStudioClient {
 		await this.postJson(RECORDER_COMMAND_PATHS[command])
 	}
 
-	private async getJson<T>(path: string): Promise<T> {
-		return this.request<T>('GET', path)
+	private async getJson<T>(path: string, options: PowerStudioRequestOptions = {}): Promise<T> {
+		return this.request<T>('GET', path, undefined, options)
 	}
 
 	private async postJson<T>(path: string, body?: unknown): Promise<T> {
 		return this.request<T>('POST', path, body)
 	}
 
-	private async request<T>(method: PowerStudioRequestMethod, path: string, body?: unknown): Promise<T> {
+	private async request<T>(
+		method: PowerStudioRequestMethod,
+		path: string,
+		body?: unknown,
+		options: PowerStudioRequestOptions = {},
+	): Promise<T> {
 		const url = this.buildUrl(path)
 		const context: PowerStudioRequestContext = { method, path, url }
 		const controller = new AbortController()
-		const timeout = setTimeout(() => controller.abort(), this.config.requestTimeout)
+		let didTimeout = false
+		const timeout = setTimeout(() => {
+			didTimeout = true
+			controller.abort()
+		}, this.config.requestTimeout)
 		const requestBody = body === undefined ? undefined : JSON.stringify(body)
+		const signal = options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal
 
 		try {
 			const response = await fetch(url, {
 				method,
 				headers: this.buildHeaders(body !== undefined),
 				body: requestBody,
-				signal: controller.signal,
+				signal,
 			})
 
 			const text = await response.text()
@@ -151,7 +165,11 @@ export class PowerStudioClient {
 			}
 		} catch (error) {
 			if (error instanceof Error && error.name === 'AbortError') {
-				throw new PowerStudioTimeoutError(context, this.config.requestTimeout)
+				if (didTimeout) {
+					throw new PowerStudioTimeoutError(context, this.config.requestTimeout)
+				}
+
+				throw new PowerStudioRequestAbortedError(context)
 			}
 
 			if (error instanceof PowerStudioHttpError || error instanceof PowerStudioInvalidJsonError) {

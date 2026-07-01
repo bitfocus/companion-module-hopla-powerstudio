@@ -10,7 +10,7 @@ import {
 import { getCartRackLayoutFingerprint } from './cart-rack.js'
 import { PowerStudioClient } from './client.js'
 import { defaultConfig, GetConfigFields, MIN_POLL_INTERVAL, type ModuleConfig, type ModuleSecrets } from './config.js'
-import { describePowerStudioError } from './errors.js'
+import { describePowerStudioError, formatUnknownError } from './errors.js'
 import { UpdateFeedbacks, type FeedbacksSchema } from './feedbacks.js'
 import { clampPlaylistWindowOffset, getPlaylistWindowItems } from './playlist-window.js'
 import { UpdatePresets } from './presets.js'
@@ -35,6 +35,10 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	state: PowerStudioState = {}
 
 	private pollTimer: NodeJS.Timeout | undefined
+	private pollingEnabled = false
+	private refreshController: AbortController | undefined
+	private refreshEpoch = 0
+	private refreshInFlight: Promise<void> | undefined
 	private connectionStatus = 'Not configured'
 	private connectionOk = false
 	private reportedConnectionStatus: InstanceStatus | undefined
@@ -42,6 +46,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	private lastErrorMessage: string | undefined
 	private cartRackLayoutFingerprint = ''
 	private playlistWindowOffset = 0
+	private publishedStateFingerprint = ''
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -73,6 +78,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.reportedConnectionMessage = undefined
 		this.cartRackLayoutFingerprint = ''
 		this.playlistWindowOffset = 0
+		this.publishedStateFingerprint = ''
 
 		this.updateActions()
 		this.updateFeedbacks()
@@ -85,10 +91,9 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			return
 		}
 
-		this.client = new PowerStudioClient(this.config, this.secrets, (message) => console.log(message))
+		this.client = new PowerStudioClient(this.config, this.secrets, (message) => this.log('debug', message))
 		this.setConnectionStatus(InstanceStatus.Connecting, 'Connecting')
 		this.startPolling()
-		void this.refreshStatus()
 	}
 
 	getConfigFields(): SomeCompanionConfigField[] {
@@ -111,63 +116,117 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		UpdateVariableDefinitions(this)
 	}
 
-	async refreshStatus(): Promise<void> {
+	async refreshStatus(options: { forceAfterCurrent?: boolean; interruptCurrent?: boolean } = {}): Promise<void> {
+		const currentRefresh = this.refreshInFlight
+
+		if (currentRefresh) {
+			if (options.interruptCurrent) {
+				this.cancelActiveRefresh()
+			}
+
+			await currentRefresh
+
+			if (!options.forceAfterCurrent) {
+				return
+			}
+
+			if (this.refreshInFlight) {
+				return
+			}
+		}
+
+		const refresh = this.refreshStatusInner().finally(() => {
+			if (this.refreshInFlight === refresh) {
+				this.refreshInFlight = undefined
+			}
+		})
+		this.refreshInFlight = refresh
+		await refresh
+	}
+
+	private async refreshStatusInner(): Promise<void> {
 		const client = this.client
+		const epoch = this.refreshEpoch
 
 		if (!client) {
 			this.setConnectionStatus(InstanceStatus.BadConfig, 'Power Studio host is required')
 			return
 		}
 
-		const totalStatusResult = await Promise.allSettled([client.getTotalStatus()])
+		const controller = new AbortController()
+		this.refreshController = controller
 
-		if (totalStatusResult[0].status === 'rejected') {
-			this.handleStatusRefreshError(totalStatusResult[0].reason)
-			return
-		}
+		try {
+			const totalStatusResult = await Promise.allSettled([client.getTotalStatus({ signal: controller.signal })])
 
-		const totalStatus = totalStatusResult[0].value
+			if (!this.isCurrentRefresh(client, epoch, controller)) {
+				return
+			}
 
-		this.applyTotalStatusVersion(totalStatus)
+			if (totalStatusResult[0].status === 'rejected') {
+				this.handleStatusRefreshError(totalStatusResult[0].reason)
+				return
+			}
 
-		const capabilities = this.state.capabilities ?? buildCapabilities(this.state.version)
+			const totalStatus = totalStatusResult[0].value
 
-		if (!capabilities.supportedApiVersion) {
-			const message = describeUnsupportedApiVersion(capabilities)
+			this.applyTotalStatusVersion(totalStatus)
 
-			this.clearFunctionalState()
-			this.state.lastStatusError = message
+			const capabilities = this.state.capabilities ?? buildCapabilities(this.state.version)
+
+			if (!capabilities.supportedApiVersion) {
+				const message = describeUnsupportedApiVersion(capabilities)
+
+				this.clearFunctionalState()
+				this.state.lastStatusError = message
+				this.state.lastUpdated = new Date().toISOString()
+				this.logRequestError('warn', 'Power Studio API version is not supported', message)
+				this.setConnectionStatus(InstanceStatus.BadConfig, message)
+				return
+			}
+
+			this.applyTotalStatus(totalStatus, capabilities)
+
+			const playlistResult = capabilities.features.playlist
+				? await Promise.allSettled([client.getCurrentPlaylist({ signal: controller.signal })])
+				: []
+
+			if (!this.isCurrentRefresh(client, epoch, controller)) {
+				return
+			}
+
+			const playlistFailure = playlistResult.find((result) => result.status === 'rejected')
+
+			if (playlistResult[0]?.status === 'fulfilled') {
+				this.state.currentPlaylist = playlistResult[0].value
+			}
+
+			if (playlistFailure?.status === 'rejected') {
+				const description = describePowerStudioError(playlistFailure.reason, 'poll')
+
+				this.state.lastStatusError = description.message
+				this.log(description.logLevel, `Partial Power Studio status refresh failed: ${description.message}`)
+			} else {
+				this.state.lastStatusError = ''
+			}
+
+			this.updateDynamicDefinitions()
+			this.playlistWindowOffset = clampPlaylistWindowOffset(this.state.currentPlaylist, this.playlistWindowOffset)
+
 			this.state.lastUpdated = new Date().toISOString()
-			this.logRequestError('warn', 'Power Studio API version is not supported', message)
-			this.setConnectionStatus(InstanceStatus.BadConfig, message)
-			return
+			this.setConnectionStatus(InstanceStatus.Ok, 'Connected')
+		} catch (error) {
+			if (!this.isCurrentRefresh(client, epoch, controller)) {
+				return
+			}
+
+			this.logUnexpectedRefreshError(error)
+			this.setConnectionStatus(InstanceStatus.UnknownError, 'Power Studio status refresh failed unexpectedly')
+		} finally {
+			if (this.refreshController === controller) {
+				this.refreshController = undefined
+			}
 		}
-
-		this.applyTotalStatus(totalStatus, capabilities)
-
-		const playlistResult = capabilities.features.playlist ? await Promise.allSettled([client.getCurrentPlaylist()]) : []
-
-		const playlistFailure = playlistResult.find((result) => result.status === 'rejected')
-
-		if (playlistResult[0]?.status === 'fulfilled') {
-			this.state.currentPlaylist = playlistResult[0].value
-		}
-
-		if (playlistFailure?.status === 'rejected') {
-			const description = describePowerStudioError(playlistFailure.reason, 'poll')
-
-			this.state.lastStatusError = description.message
-			this.log(description.logLevel, `Partial Power Studio status refresh failed: ${description.message}`)
-		} else {
-			this.state.lastStatusError = ''
-		}
-
-		this.updateDynamicDefinitions()
-		this.playlistWindowOffset = clampPlaylistWindowOffset(this.state.currentPlaylist, this.playlistWindowOffset)
-
-		this.state.lastUpdated = new Date().toISOString()
-		this.setConnectionStatus(InstanceStatus.Ok, 'Connected')
-		this.checkAllFeedbacks()
 	}
 
 	private applyTotalStatusVersion(totalStatus: TotalStatusModel): void {
@@ -217,7 +276,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			this.assertCapability(capability)
 			await command(client)
 			this.state.lastCommandError = ''
-			await this.refreshStatus()
+			await this.refreshStatus({ forceAfterCurrent: true, interruptCurrent: true })
 		} catch (error) {
 			this.handleCommandError(label, error)
 			throw error
@@ -238,8 +297,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 	setPlaylistWindowOffset(offset: number): void {
 		this.playlistWindowOffset = clampPlaylistWindowOffset(this.state.currentPlaylist, offset)
-		UpdateVariableValues(this, this.connectionStatus)
-		this.checkAllFeedbacks()
+		this.publishVariableValuesAndFeedbacks()
 	}
 
 	shiftPlaylistWindow(delta: number): void {
@@ -265,18 +323,54 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	}
 
 	private startPolling(): void {
-		const interval = Math.max(MIN_POLL_INTERVAL, this.config.pollInterval)
-
-		this.pollTimer = setInterval(() => {
-			void this.refreshStatus()
-		}, interval)
+		this.pollingEnabled = true
+		void this.runPollCycle().catch((error) => this.logUnexpectedRefreshError(error))
 	}
 
 	private stopPolling(): void {
+		this.pollingEnabled = false
+
 		if (this.pollTimer) {
-			clearInterval(this.pollTimer)
+			clearTimeout(this.pollTimer)
 			this.pollTimer = undefined
 		}
+
+		this.cancelActiveRefresh()
+	}
+
+	private scheduleNextPoll(): void {
+		if (!this.pollingEnabled || this.pollTimer || !this.client) {
+			return
+		}
+
+		const interval = Math.max(MIN_POLL_INTERVAL, this.config.pollInterval)
+
+		this.pollTimer = setTimeout(() => {
+			this.pollTimer = undefined
+			void this.runPollCycle().catch((error) => this.logUnexpectedRefreshError(error))
+		}, interval)
+	}
+
+	private async runPollCycle(): Promise<void> {
+		try {
+			await this.refreshStatus({ forceAfterCurrent: true })
+		} finally {
+			this.scheduleNextPoll()
+		}
+	}
+
+	private isCurrentRefresh(client: PowerStudioClient, epoch: number, controller: AbortController): boolean {
+		return this.client === client && this.refreshEpoch === epoch && this.refreshController === controller
+	}
+
+	private cancelActiveRefresh(): void {
+		if (!this.refreshInFlight) {
+			return
+		}
+
+		this.refreshEpoch++
+		this.refreshController?.abort()
+		this.refreshController = undefined
 	}
 
 	private setConnectionStatus(status: InstanceStatus, message: string): void {
@@ -290,8 +384,38 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			this.reportedConnectionMessage = message
 		}
 
+		this.publishVariableValuesAndFeedbacks()
+	}
+
+	private publishVariableValuesAndFeedbacks(): void {
+		const fingerprint = this.buildPublishedStateFingerprint()
+
+		if (fingerprint === this.publishedStateFingerprint) {
+			return
+		}
+
+		this.publishedStateFingerprint = fingerprint
 		UpdateVariableValues(this, this.connectionStatus)
 		this.checkAllFeedbacks()
+	}
+
+	private buildPublishedStateFingerprint(): string {
+		return JSON.stringify({
+			connectionStatus: this.connectionStatus,
+			connectionOk: this.connectionOk,
+			capabilities: this.state.capabilities?.fingerprint,
+			version: this.state.version,
+			lastDetectedVersion: this.state.lastDetectedVersion,
+			uptime: this.state.uptime,
+			playout: this.state.playout,
+			currentPlaylist: this.state.currentPlaylist,
+			carts: this.state.carts,
+			mixEditor: this.state.mixEditor,
+			recorder: this.state.recorder,
+			lastStatusError: this.state.lastStatusError,
+			lastCommandError: this.state.lastCommandError,
+			playlistWindowOffset: this.playlistWindowOffset,
+		})
 	}
 
 	private setCapabilities(capabilities: PowerStudioCapabilities): void {
@@ -366,5 +490,9 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			this.log(logLevel, fullMessage)
 			this.lastErrorMessage = fullMessage
 		}
+	}
+
+	private logUnexpectedRefreshError(error: unknown): void {
+		this.log('error', `Power Studio status refresh failed unexpectedly: ${formatUnknownError(error)}`)
 	}
 }

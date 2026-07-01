@@ -21,17 +21,17 @@ test('port config field defaults to the Power Studio REST API plugin default por
 	assert.equal(portField.default, DEFAULT_REST_API_PORT)
 })
 
-test('poll interval defaults to 100 ms and allows 10 ms as minimum', () => {
+test('poll interval defaults to 500 ms and allows 100 ms as minimum', () => {
 	const pollIntervalField = GetConfigFields().find((field) => field.id === 'pollInterval')
 
 	assert.equal(defaultConfig().pollInterval, DEFAULT_POLL_INTERVAL)
-	assert.equal(DEFAULT_POLL_INTERVAL, 100)
-	assert.equal(MIN_POLL_INTERVAL, 10)
+	assert.equal(DEFAULT_POLL_INTERVAL, 500)
+	assert.equal(MIN_POLL_INTERVAL, 100)
 	assert.ok(pollIntervalField)
 	assert.equal(pollIntervalField.type, 'number')
 	assert.equal(pollIntervalField.default, DEFAULT_POLL_INTERVAL)
 	assert.equal(pollIntervalField.min, MIN_POLL_INTERVAL)
-	assert.equal(pollIntervalField.step, 10)
+	assert.equal(pollIntervalField.step, 50)
 })
 
 test('preset title visibility options default to showing titles', () => {

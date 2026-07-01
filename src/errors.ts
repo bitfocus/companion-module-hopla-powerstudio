@@ -51,6 +51,13 @@ export class PowerStudioNetworkError extends Error {
 	}
 }
 
+export class PowerStudioRequestAbortedError extends Error {
+	constructor(public readonly context: PowerStudioRequestContext) {
+		super(`${context.method} ${context.path} was cancelled`)
+		this.name = 'PowerStudioRequestAbortedError'
+	}
+}
+
 export class PowerStudioInvalidJsonError extends Error {
 	constructor(
 		public readonly context: PowerStudioRequestContext,
@@ -82,6 +89,15 @@ export function describePowerStudioError(error: unknown, source: ErrorSource): E
 			status: InstanceStatus.ConnectionFailure,
 			logLevel: 'error',
 			isConnectionProblem: true,
+		}
+	}
+
+	if (error instanceof PowerStudioRequestAbortedError) {
+		return {
+			message: source === 'poll' ? POLL_VALUES_ERROR : 'Power Studio request was cancelled.',
+			status: InstanceStatus.UnknownWarning,
+			logLevel: 'warn',
+			isConnectionProblem: false,
 		}
 	}
 

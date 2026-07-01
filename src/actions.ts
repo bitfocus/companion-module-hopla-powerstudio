@@ -90,7 +90,7 @@ export function UpdateActions(self: ModuleInstance): void {
 			name: 'Refresh cached status',
 			options: [],
 			callback: async () => {
-				await self.refreshStatus()
+				await self.refreshStatus({ forceAfterCurrent: true, interruptCurrent: true })
 			},
 		},
 		player_command: {
@@ -181,13 +181,20 @@ export function UpdateActions(self: ModuleInstance): void {
 					id: 'nextLineId',
 					label: 'Program line id',
 					default: '',
+					useVariables: true,
 				},
 			],
 			callback: async (event) => {
-				const nextLineId = Number(event.options.nextLineId)
+				const nextLineIdText = event.options.nextLineId
 
-				if (!Number.isSafeInteger(nextLineId)) {
+				if (nextLineIdText.trim() !== nextLineIdText || !/^\d+$/.test(nextLineIdText)) {
 					throw new Error(`Program line id must be a safe integer: ${event.options.nextLineId}`)
+				}
+
+				const nextLineId = Number(nextLineIdText)
+
+				if (!Number.isSafeInteger(nextLineId) || nextLineId <= 0) {
+					throw new Error(`Program line id must be a positive safe integer: ${event.options.nextLineId}`)
 				}
 
 				await self.runCommand('set next item', 'playoutCommands', async (client) => {
@@ -345,7 +352,7 @@ async function resolvePlayerCommand(
 }
 
 async function resolveCueOrStopCommand(self: ModuleInstance, player: number): Promise<PlayerCommand> {
-	await self.refreshStatus()
+	await self.refreshStatus({ forceAfterCurrent: true, interruptCurrent: true })
 
 	return self.state.playout?.players?.[player]?.playing === true ? 'Stop' : 'Cue'
 }
