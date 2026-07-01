@@ -116,10 +116,14 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		UpdateVariableDefinitions(this)
 	}
 
-	async refreshStatus(options: { forceAfterCurrent?: boolean } = {}): Promise<void> {
+	async refreshStatus(options: { forceAfterCurrent?: boolean; interruptCurrent?: boolean } = {}): Promise<void> {
 		const currentRefresh = this.refreshInFlight
 
 		if (currentRefresh) {
+			if (options.interruptCurrent) {
+				this.cancelActiveRefresh()
+			}
+
 			await currentRefresh
 
 			if (!options.forceAfterCurrent) {
@@ -272,7 +276,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			this.assertCapability(capability)
 			await command(client)
 			this.state.lastCommandError = ''
-			await this.refreshStatus({ forceAfterCurrent: true })
+			await this.refreshStatus({ forceAfterCurrent: true, interruptCurrent: true })
 		} catch (error) {
 			this.handleCommandError(label, error)
 			throw error
@@ -331,9 +335,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 			this.pollTimer = undefined
 		}
 
-		this.refreshEpoch++
-		this.refreshController?.abort()
-		this.refreshController = undefined
+		this.cancelActiveRefresh()
 	}
 
 	private scheduleNextPoll(): void {
@@ -359,6 +361,16 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 	private isCurrentRefresh(client: PowerStudioClient, epoch: number, controller: AbortController): boolean {
 		return this.client === client && this.refreshEpoch === epoch && this.refreshController === controller
+	}
+
+	private cancelActiveRefresh(): void {
+		if (!this.refreshInFlight) {
+			return
+		}
+
+		this.refreshEpoch++
+		this.refreshController?.abort()
+		this.refreshController = undefined
 	}
 
 	private setConnectionStatus(status: InstanceStatus, message: string): void {

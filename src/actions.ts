@@ -90,7 +90,7 @@ export function UpdateActions(self: ModuleInstance): void {
 			name: 'Refresh cached status',
 			options: [],
 			callback: async () => {
-				await self.refreshStatus()
+				await self.refreshStatus({ forceAfterCurrent: true, interruptCurrent: true })
 			},
 		},
 		player_command: {
@@ -352,7 +352,7 @@ async function resolvePlayerCommand(
 }
 
 async function resolveCueOrStopCommand(self: ModuleInstance, player: number): Promise<PlayerCommand> {
-	await self.refreshStatus()
+	await self.refreshStatus({ forceAfterCurrent: true, interruptCurrent: true })
 
 	return self.state.playout?.players?.[player]?.playing === true ? 'Stop' : 'Cue'
 }

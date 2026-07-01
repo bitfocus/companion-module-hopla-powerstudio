@@ -138,6 +138,8 @@ Build a Companion package:
 yarn package
 ```
 
+When making a code or behavior change, add a matching entry to the Version History section in `companion/HELP.md`.
+
 ## Companion Development Setup
 
 Set Companion's developer modules path to the parent folder containing this module. Companion will load the built `dist/main.js` through `companion/manifest.json`.
