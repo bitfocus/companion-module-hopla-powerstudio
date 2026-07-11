@@ -1,6 +1,6 @@
 {
 	"name": "companion-module-hopla-powerstudio",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Bitfocus Companion module for controlling Power Studio through its REST API.",
 	"main": "dist/main.js",
 	"type": "module",

@@ -24,6 +24,11 @@ More information about Power Studio is available at [power-studio.nl](https://ww
 
 ## Version History
 
+### Version 1.0.3
+
+- Re-tagged the release after fixing the package lockfile/tooling setup for Bitfocus build checks.
+- Updated project workflows to install dependencies and build packages with Yarn.
+
 ### Version 1.0.2
 
 - Refresh status immediately after button actions so feedback updates faster without overlapping regular polls.
